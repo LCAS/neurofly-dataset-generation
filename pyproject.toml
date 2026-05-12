@@ -1,0 +1,26 @@
+[project]
+name = "neurofly-dataset-generation"
+version = "0.1.0"
+description = "RotorPy-based utilities for generating spiral flight datasets and noisy sensor variants."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+    "rotorpy>=2.1.2",
+    "scipy>=1.12",
+]
+
+[project.scripts]
+neurofly-generate = "neurofly_dataset_generation.cli:run_dataset_cli"
+neurofly-add-noise = "neurofly_dataset_generation.cli:run_noise_cli"
+neurofly-plot-tracking = "neurofly_dataset_generation.cli:run_tracking_plot_cli"
+neurofly-plot-noisy = "neurofly_dataset_generation.cli:run_noisy_plot_cli"
+neurofly = "neurofly_dataset_generation.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["neurofly_dataset_generation"]
