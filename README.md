@@ -1,12 +1,12 @@
 # neurofly-dataset-generation
 
-Utilities for generating UAV trajectory datasets in RotorPy, adding configurable sensor noise, and plotting the resulting trajectories. The current workflow focuses on a smooth conical spiral flight path and produces CSV files that are useful for filtering, state-estimation, and sensor-fusion experiments.
+Utilities for generating UAV trajectory datasets in RotorPy, adding configurable sensor noise, and plotting the resulting trajectories. The current workflow supports a smooth conical spiral flight path and a figure-eight flight path with mid-air altitude variation, producing CSV files that are useful for filtering, state-estimation, and sensor-fusion experiments.
 
 ## Purpose
 
 This repository provides three main capabilities:
 
-1. Run a RotorPy simulation of a spiral flight path and export the resulting CSV logs.
+1. Run a RotorPy simulation of a selected UAV flight path and export the resulting CSV logs.
 2. Augment a simulation CSV with noisy IMU, mocap or GPS-style measurements, plus a drifting dead-reckoned state.
 3. Visualize tracking quality and noisy-vs-clean position data.
 
@@ -84,8 +84,16 @@ Useful flags:
 - `--no-plot`
 - `--no-animate`
 - `--quiet`
+- `--trajectory conical-spiral`
+- `--trajectory figure-eight`
 - `--sensor-csv <path>`
 - `--simulation-csv <path>`
+
+To generate the figure-eight trajectory with varying altitude:
+
+```bash
+rotorpy/bin/python -m neurofly_dataset_generation generate --trajectory figure-eight --no-plot --no-animate --simulation-csv figure_eight_usage.csv --sensor-csv figure_eight_flight_data.csv
+```
 
 ### 2. Inject sensor noise
 
@@ -148,7 +156,7 @@ neurofly_dataset_generation/
   noise.py         Noise injection and dead reckoning
   plotting.py      Visualization helpers
   simulation.py    RotorPy simulation orchestration
-  trajectories.py  Spiral trajectory definitions
+  trajectories.py  Trajectory definitions
 ```
 
 ## Notes

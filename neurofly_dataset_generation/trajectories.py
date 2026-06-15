@@ -185,3 +185,126 @@ class RampedConicalSpiralTrajectory:
             "yaw_dot": yaw_dot_base * tau_dot,
             "yaw_ddot": yaw_ddot_base * tau_dot**2 + yaw_dot_base * tau_ddot,
         }
+
+
+def _heading_derivatives(v, a, j):
+    planar_speed_sq = v[0] ** 2 + v[1] ** 2
+    if planar_speed_sq <= 1e-12:
+        return 0.0, 0.0
+
+    cross_va = v[0] * a[1] - v[1] * a[0]
+    cross_vj = v[0] * j[1] - v[1] * j[0]
+    dot_va = v[0] * a[0] + v[1] * a[1]
+    yaw_dot = cross_va / planar_speed_sq
+    yaw_ddot = (cross_vj * planar_speed_sq - cross_va * 2.0 * dot_va) / (
+        planar_speed_sq**2
+    )
+    return yaw_dot, yaw_ddot
+
+
+def _figure_eight_flat_output(x_scale, y_scale, z_base, z_amplitude, omega, t):
+    theta = omega * t
+
+    sin_t = np.sin(theta)
+    cos_t = np.cos(theta)
+    sin_2t = np.sin(2.0 * theta)
+    cos_2t = np.cos(2.0 * theta)
+
+    x = np.array(
+        [
+            x_scale * sin_t,
+            0.5 * y_scale * sin_2t,
+            z_base + z_amplitude * sin_t,
+        ]
+    )
+    v = np.array(
+        [
+            x_scale * omega * cos_t,
+            y_scale * omega * cos_2t,
+            z_amplitude * omega * cos_t,
+        ]
+    )
+    a = np.array(
+        [
+            -x_scale * omega**2 * sin_t,
+            -2.0 * y_scale * omega**2 * sin_2t,
+            -z_amplitude * omega**2 * sin_t,
+        ]
+    )
+    j = np.array(
+        [
+            -x_scale * omega**3 * cos_t,
+            -4.0 * y_scale * omega**3 * cos_2t,
+            -z_amplitude * omega**3 * cos_t,
+        ]
+    )
+    s = np.array(
+        [
+            x_scale * omega**4 * sin_t,
+            8.0 * y_scale * omega**4 * sin_2t,
+            z_amplitude * omega**4 * sin_t,
+        ]
+    )
+    yaw = np.arctan2(v[1], v[0])
+    yaw_dot, yaw_ddot = _heading_derivatives(v, a, j)
+    return x, v, a, j, s, yaw, yaw_dot, yaw_ddot
+
+
+class RampedFigureEightVariableAltitudeTrajectory:
+    """A smooth-start figure-eight trajectory with sinusoidal altitude changes."""
+
+    def __init__(
+        self,
+        x_scale=2.0,
+        y_scale=1.5,
+        z_base=2.0,
+        z_amplitude=0.6,
+        omega=0.39269908169872414,
+        ramp_time=8.0,
+    ):
+        self.x_scale = x_scale
+        self.y_scale = y_scale
+        self.z_base = z_base
+        self.z_amplitude = z_amplitude
+        self.w = omega
+        self.ramp_time = ramp_time
+
+    def _progress(self, t):
+        if self.ramp_time <= 0.0:
+            return t, 1.0, 0.0
+
+        if t <= 0.0:
+            return 0.0, 0.0, 0.0
+
+        if t < self.ramp_time:
+            u = t / self.ramp_time
+            tau = self.ramp_time * (2.5 * u**4 - 3.0 * u**5 + u**6)
+            tau_dot = 10.0 * u**3 - 15.0 * u**4 + 6.0 * u**5
+            tau_ddot = (30.0 * u**2 - 60.0 * u**3 + 30.0 * u**4) / self.ramp_time
+            return tau, tau_dot, tau_ddot
+
+        return t - 0.5 * self.ramp_time, 1.0, 0.0
+
+    def update(self, t):
+        tau, tau_dot, tau_ddot = self._progress(t)
+        x_base, v_base, a_base, j_base, s_base, yaw, yaw_dot_base, yaw_ddot_base = (
+            _figure_eight_flat_output(
+                self.x_scale,
+                self.y_scale,
+                self.z_base,
+                self.z_amplitude,
+                self.w,
+                tau,
+            )
+        )
+
+        return {
+            "x": x_base,
+            "x_dot": v_base * tau_dot,
+            "x_ddot": a_base * tau_dot**2 + v_base * tau_ddot,
+            "x_dddot": j_base * tau_dot**3,
+            "x_ddddot": s_base * tau_dot**4,
+            "yaw": yaw,
+            "yaw_dot": yaw_dot_base * tau_dot,
+            "yaw_ddot": yaw_ddot_base * tau_dot**2 + yaw_dot_base * tau_ddot,
+        }

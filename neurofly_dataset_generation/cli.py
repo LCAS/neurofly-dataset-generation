@@ -1,12 +1,14 @@
 """Command-line entry points for dataset generation workflows."""
 
 import argparse
+import sys
 
 from .config import (
     DEFAULT_NOISY_CSV,
     DEFAULT_PLOT_DIR,
     DEFAULT_SENSOR_CSV,
     DEFAULT_SIM_CSV,
+    TRAJECTORY_CHOICES,
 )
 
 
@@ -21,6 +23,12 @@ def build_dataset_parser():
         help="Disable RotorPy animation output.",
     )
     parser.add_argument("--quiet", action="store_true", help="Reduce console output.")
+    parser.add_argument(
+        "--trajectory",
+        choices=TRAJECTORY_CHOICES,
+        default="conical-spiral",
+        help="Reference trajectory to simulate. Defaults to conical-spiral.",
+    )
     parser.add_argument(
         "--plot-tracking",
         action="store_true",
@@ -157,6 +165,7 @@ def run_dataset_cli(argv=None):
         tracking_output_dir=args.tracking_output_dir,
         sensor_csv_path=args.sensor_csv,
         simulation_csv_path=args.simulation_csv,
+        trajectory_name=args.trajectory,
     )
 
 
@@ -233,20 +242,21 @@ def build_root_parser():
 
 
 def main(argv=None):
+    raw_args = sys.argv[1:] if argv is None else argv
     parser = build_root_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(raw_args)
 
     if args.command == "generate":
-        run_dataset_cli(argv[1:] if argv is not None else None)
+        run_dataset_cli(raw_args[1:])
         return
     if args.command == "add-noise":
-        run_noise_cli(argv[1:] if argv is not None else None)
+        run_noise_cli(raw_args[1:])
         return
     if args.command == "plot-tracking":
-        run_tracking_plot_cli(argv[1:] if argv is not None else None)
+        run_tracking_plot_cli(raw_args[1:])
         return
     if args.command == "plot-noisy":
-        run_noisy_plot_cli(argv[1:] if argv is not None else None)
+        run_noisy_plot_cli(raw_args[1:])
         return
 
     raise ValueError(f"Unsupported command: {args.command}")

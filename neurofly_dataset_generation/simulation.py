@@ -17,6 +17,11 @@ from rotorpy.vehicles.multirotor import Multirotor
 from .config import (
     DEFAULT_SENSOR_CSV,
     DEFAULT_SIM_CSV,
+    FIGURE_EIGHT_OMEGA,
+    FIGURE_EIGHT_X_SCALE,
+    FIGURE_EIGHT_Y_SCALE,
+    FIGURE_EIGHT_Z_AMPLITUDE,
+    FIGURE_EIGHT_Z_BASE,
     MOTOR_SPEED_MAX_LIMIT,
     OMEGA,
     POSITION_MAX_LIMIT,
@@ -26,11 +31,14 @@ from .config import (
     RAMP_TIME,
     SIM_RATE,
     T_FINAL,
+    TRAJECTORY_CHOICES,
     V_Z,
 )
 from .plotting import plot_trajectory_comparison
-from .trajectories import RampedConicalSpiralTrajectory
-
+from .trajectories import (
+    RampedConicalSpiralTrajectory,
+    RampedFigureEightVariableAltitudeTrajectory,
+)
 
 def hover_rotor_speed(params):
     return np.sqrt((params["mass"] * 9.81 / params["num_rotors"]) / params["k_eta"])
@@ -48,7 +56,23 @@ def quaternion_yaw(quaternion):
     return Rotation.from_quat(quaternion).as_euler("zyx")[0]
 
 
-def build_trajectory():
+def build_trajectory(trajectory_name="conical-spiral"):
+    if trajectory_name == "figure-eight":
+        return RampedFigureEightVariableAltitudeTrajectory(
+            x_scale=FIGURE_EIGHT_X_SCALE,
+            y_scale=FIGURE_EIGHT_Y_SCALE,
+            z_base=FIGURE_EIGHT_Z_BASE,
+            z_amplitude=FIGURE_EIGHT_Z_AMPLITUDE,
+            omega=FIGURE_EIGHT_OMEGA,
+            ramp_time=RAMP_TIME,
+        )
+
+    if trajectory_name != "conical-spiral":
+        raise ValueError(
+            f"Unsupported trajectory '{trajectory_name}'. "
+            f"Choose one of: {', '.join(TRAJECTORY_CHOICES)}."
+        )
+
     return RampedConicalSpiralTrajectory(
         radius_start=RADIUS_START,
         radius_rate=RADIUS_RATE,
@@ -172,8 +196,9 @@ def run_spiral_study(
     tracking_output_dir=None,
     sensor_csv_path=DEFAULT_SENSOR_CSV,
     simulation_csv_path=DEFAULT_SIM_CSV,
+    trajectory_name="conical-spiral",
 ):
-    trajectory = build_trajectory()
+    trajectory = build_trajectory(trajectory_name)
     validate_reference_consistency(trajectory)
 
     sim_instance = Environment(
@@ -209,5 +234,7 @@ def run_spiral_study(
             output_dir=tracking_output_dir,
         )
 
-    print("Simulation complete! Trajectory executed and CSV data exported.")
+    print(
+        f"Simulation complete! {trajectory_name} trajectory executed and CSV data exported."
+    )
     return results
